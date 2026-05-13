@@ -3008,6 +3008,8 @@ ${text}
 function getApiKey() {
   const p = AI_PROVIDERS[getProviderId()];
   if (!p) return '';
+  // 키가 필요 없는 공급자(Pollinations 등)는 더미 토큰 반환 — 호출부의 if(!key) 체크 통과시키기 위함
+  if (p.noKey) return 'no-key-required';
   return (localStorage.getItem(p.keyStorage) || '').trim();
 }
 
