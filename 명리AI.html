@@ -179,6 +179,7 @@
   }
   .ai-icon.free-shared { background: linear-gradient(135deg, #fbbf24, #d97706); }
   .ai-icon.pollinations { background: linear-gradient(135deg, #84cc16, #15803d); }
+  .ai-icon.ollama { background: linear-gradient(135deg, #6366f1, #4338ca); }
   .ai-icon.anthropic { background: linear-gradient(135deg, #d97706, #9a4a1c); }
   .ai-icon.openai     { background: linear-gradient(135deg, #10a37f, #0a6e54); }
   .ai-icon.gemini     { background: conic-gradient(from 45deg, #4285f4, #9333ea, #ec4899, #f59e0b, #4285f4); }
@@ -2253,6 +2254,11 @@
         <div class="ai-info"><div class="ai-name">키 불필요</div></div>
         <div class="ai-check">✓</div>
       </div>
+      <div class="ai-logo" data-provider="ollama" onclick="selectProvider('ollama')" title="🦙 Ollama — 본인 컴퓨터에서 로컬 AI 실행 (무료·오프라인)">
+        <div class="ai-icon ollama">🦙</div>
+        <div class="ai-info"><div class="ai-name">로컬</div></div>
+        <div class="ai-check">✓</div>
+      </div>
       <div class="ai-logo" data-provider="anthropic" onclick="selectProvider('anthropic')" title="Anthropic Claude (유료)">
         <div class="ai-icon anthropic">A</div>
         <div class="ai-info"><div class="ai-name">Claude</div></div>
@@ -2902,6 +2908,17 @@ const AI_PROVIDERS = {
     free: true,
     noKey: true,
     isProxy: true
+  },
+  ollama: {
+    name: '🦙 Ollama (로컬 무료·오프라인)',
+    keyStorage: 'ollama_url',
+    placeholder: 'http://localhost:11434 (기본값)',
+    helpUrl: 'https://ollama.com/download',
+    apiUrl: 'http://localhost:11434/v1/chat/completions',
+    defaultModel: 'qwen2.5:14b',
+    free: true,
+    noKey: true,
+    isLocal: true
   },
   pollinations: {
     name: 'Pollinations (키 불필요)',
@@ -3556,6 +3573,50 @@ async function callAI(promptOrMessages, options = {}) {
       const cleaned_anthro = cleanMarkdown(text);
       return await _continueIfTruncated(cleaned_anthro, messages, options, providerId);
     }
+    // 🦙 Ollama (로컬 — OpenAI 호환 API)
+    if (providerId === 'ollama') {
+      // 사용자가 키 저장소에 URL을 넣었으면 그것 사용 (다른 포트 가능)
+      const userUrl = (localStorage.getItem(provider.keyStorage) || '').trim();
+      const baseUrl = userUrl || 'http://localhost:11434';
+      const apiUrl = baseUrl.replace(/\/$/, '') + '/v1/chat/completions';
+      const finalMessages = system ? [{ role: 'system', content: system }, ...messages] : messages;
+      let resp;
+      try {
+        resp = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: model,
+            messages: finalMessages,
+            stream: false,
+            options: { num_predict: maxTokens }
+          }),
+          signal
+        });
+      } catch (e) {
+        if (e.name === 'AbortError') throw e;
+        throw new Error('🦙 Ollama 연결 실패\n\n1. Ollama가 본인 컴퓨터에서 실행 중인지 확인\n   (작업 표시줄 또는 트레이의 🦙 아이콘)\n2. 모델이 설치되었는지 확인\n   명령 프롬프트에서: ollama list\n3. CORS 환경 변수 OLLAMA_ORIGINS=* 설정되었는지\n4. 또는 다른 AI(🎁 무료 공유 등)로 전환\n\n원본 오류: ' + e.message);
+      }
+      if (!resp.ok) {
+        const txt = await resp.text().catch(() => '');
+        let msg = txt.slice(0, 250);
+        try { const j = JSON.parse(txt); if (j.error) msg = j.error.message || j.error; } catch {}
+        if (resp.status === 404) {
+          msg = `모델 '${model}' 미설치. 명령 프롬프트에서 실행:\nollama pull ${model}`;
+        }
+        throw new Error(`🦙 Ollama 오류 ${resp.status}: ${msg}`);
+      }
+      const data = await resp.json();
+      const text = data.choices?.[0]?.message?.content
+                || data.choices?.[0]?.text
+                || data.message?.content
+                || '';
+      if (!text || !text.trim()) {
+        throw new Error('🦙 Ollama: 빈 응답 (모델이 잘못됐거나 메모리 부족일 수 있음)');
+      }
+      const cleaned_ollama = cleanMarkdown(text);
+      return await _continueIfTruncated(cleaned_ollama, messages, options, providerId);
+    }
     // 🎁 무료 공유 (Cloudflare Worker 프록시 — Gemini API 형식)
     if (providerId === 'free_shared') {
       const contents = messages.map(m => ({
@@ -3770,9 +3831,15 @@ function selectProvider(id) {
   });
   const keyEl = document.getElementById('ai-key');
   const keyRow = document.getElementById('ai-key-row');
-  if (p.noKey) {
+  if (p.noKey && !p.isLocal) {
+    // 일반 noKey (free_shared, pollinations) — 키 입력칸 숨김
     if (keyRow) keyRow.classList.add('no-key');
     keyEl.value = '';
+  } else if (p.isLocal) {
+    // 🦙 Ollama — 키 대신 URL/모델 커스터마이즈 가능
+    if (keyRow) keyRow.classList.remove('no-key');
+    keyEl.placeholder = '기본값(localhost:11434) — 다른 URL 사용 시 입력';
+    keyEl.value = localStorage.getItem(p.keyStorage) || '';
   } else {
     if (keyRow) keyRow.classList.remove('no-key');
     keyEl.placeholder = p.placeholder + ' (' + p.name + ')';
@@ -3801,6 +3868,8 @@ function updateAIStatus() {
     el.style.color = '#4a8559';
     if (id === 'free_shared') {
       el.textContent = `✓ 키 없이 바로 사용 — Gemini 2.5 Flash 품질 (일별 한도 20회)`;
+    } else if (id === 'ollama') {
+      el.textContent = `✓ 로컬 AI — Ollama 설치 + 모델 다운로드 필요 (무료·오프라인)`;
     } else {
       el.textContent = `✓ 키 없이 바로 사용 (품질 보통, 무료)`;
     }
