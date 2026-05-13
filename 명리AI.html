@@ -31,6 +31,12 @@
     min-height: 100vh;
     padding: 0;
     font-size: 15px;
+    /* 전체 1.2배 확대 (Chrome/Edge/Safari/모바일) */
+    zoom: 1.2;
+  }
+  /* Firefox는 zoom 미지원 — font-size를 직접 키움 */
+  @-moz-document url-prefix() {
+    html { font-size: 120%; }
   }
   /* ── LAYOUT ── */
   .app { max-width: 1140px; margin: 0 auto; padding: 22px 18px 40px; }
@@ -2289,7 +2295,7 @@
       </div>
       <div class="form-group">
         <label class="form-label">생 년 월 일 (시) &nbsp; 8 또는 12자리</label>
-        <input type="text" id="datetime" placeholder="예: 198203050500 / 시간 모름: 19820305" maxlength="12" inputmode="numeric" pattern="\d{8}|\d{12}">
+        <input type="text" id="datetime" placeholder="예: 199510150930 / 시간 모름: 19951015" maxlength="12" inputmode="numeric" pattern="\d{8}|\d{12}">
         <p class="note" id="datetime-parsed" style="margin-top:8px;">YYYYMMDD(8자리, 시간 미상) 또는 YYYYMMDDHHMM(12자리, 완전 입력) — 시간 미상으로 분석 후 결과 화면에서 시간 추정이 가능합니다</p>
       </div>
       <div class="form-group">
@@ -2764,8 +2770,8 @@
   <aside class="sidebar">
     <div class="card" id="auto-parse-card">
       <div class="section-label">📋 &nbsp; 텍 스 트 &nbsp; 자 동 &nbsp; 인 식</div>
-      <textarea id="auto-parse-text" placeholder="예) 홍길동, 1982년 3월 5일 새벽 5시 30분, 남
-김영희 / 음력 1955.4.20 (윤달) / 시간모름 / 여
+      <textarea id="auto-parse-text" placeholder="예) 홍길동, 1995년 10월 15일 오전 9시 30분, 남
+김영희 / 음력 1988.5.10 / 시간모름 / 여
 여러 명 한꺼번에도 가능"></textarea>
       <button class="auto-parse-btn" onclick="autoParseFromText()" id="auto-parse-btn">자 동 &nbsp; 정 리</button>
       <div class="auto-parse-status" id="auto-parse-status"></div>
@@ -3977,7 +3983,7 @@ function autoSave() {
   const parsedEl = document.getElementById('datetime-parsed');
   const p = parseDatetimeInput();
   if (!p) {
-    parsedEl.textContent = 'YYYYMMDDHHMM — 예: 198203050500 → 1982년 3월 5일 05시 00분';
+    parsedEl.textContent = 'YYYYMMDDHHMM — 예: 199510150930 → 1995년 10월 15일 09시 30분';
     parsedEl.style.color = '';
     return;
   }
@@ -4266,8 +4272,7 @@ function monthPillar(y, m, d) {
   return { tg: (startTG + ord) % 10, zz: zzIdx };
 }
 function dayPillar(y, m, d) {
-  // 기준: 1982-03-05 = 丁亥(index 23), 1900-01-01 = 甲戌(index 10)
-  // Jan 1, 2000 기준 일수 환산 + offset 54
+  // 만세력 일주 계산 — 2000-01-01 기준 일수 환산 + offset 54
   const dt = new Date(y, m - 1, d);
   const ref = new Date(2000, 0, 1);
   const days = Math.floor((dt - ref) / 86400000);
