@@ -3905,7 +3905,36 @@ function loadSaved(id) {
   else if (activeTab === 'pastlife' && typeof renderPastLifeTab === 'function') renderPastLifeTab();
   else if (activeTab === 'region' && typeof renderRegionTab === 'function') renderRegionTab();
   else if (activeTab === 'stock' && typeof renderStockTab === 'function') renderStockTab();
-  else if (activeTab === 'gunghap' && typeof renderCompatHistory === 'function') renderCompatHistory();
+  else if (activeTab === 'gunghap') {
+    // 궁합 탭 — 비어 있는 첫 슬롯에 자동 추가 (이미 들어 있으면 다음 빈 슬롯)
+    if (typeof compatSlots !== 'undefined') {
+      const dup = compatSlots.some(s => s && s.savedAt === r.savedAt);
+      if (dup) {
+        // 이미 슬롯에 있음 — 알림
+        if (typeof showCompatToast === 'function') showCompatToast(`${r.name || '(이름 없음)'} 은 이미 슬롯에 있습니다`);
+      } else {
+        const emptyIdx = compatSlots.findIndex(s => !s);
+        if (emptyIdx >= 0) {
+          compatSlots[emptyIdx] = r;
+          if (typeof renderCompatSlots === 'function') renderCompatSlots();
+        } else if (compatSlots.length < 5) {
+          compatSlots.push(r);
+          if (typeof renderCompatSlots === 'function') renderCompatSlots();
+        } else {
+          alert('슬롯이 가득 찼습니다 (최대 5개). 빈 자리를 만든 뒤 다시 시도하세요.');
+        }
+      }
+    }
+    if (typeof renderCompatHistory === 'function') renderCompatHistory();
+  }
+  else if (activeTab === 'tarot') {
+    // 타로 탭 — 클릭한 명식을 점단 인물로 설정
+    if (typeof tarotState !== 'undefined') {
+      tarotState.person = r;
+      if (typeof renderTarotPerson === 'function') renderTarotPerson();
+      else if (typeof renderTarotControls === 'function') renderTarotControls();
+    }
+  }
   // 해석이 아직 없는 명식이면 즉시 자동 분석 시작 (백그라운드)
   if (!r.interp) {
     const analyzingId = r.savedAt;
