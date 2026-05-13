@@ -3346,6 +3346,55 @@ function _withToneGuide(prompt) {
 
 // 통합 AI 호출 (모든 공급자 처리)
 // ══════════════════════════════════════════
+//  자동 이어쓰기 — 응답이 잘렸으면 자동으로 끝까지
+// ══════════════════════════════════════════
+function _looksTruncated(text) {
+  if (!text || typeof text !== 'string') return false;
+  const trimmed = text.trim();
+  if (trimmed.length < 1800) return false; // 짧은 응답은 정상일 수 있음
+  // 마지막 문자가 문장 종결이 아니면 잘림 의심
+  return !/[.。!?！？\]\)」』。」]\s*$/.test(trimmed.slice(-5));
+}
+
+async function _continueIfTruncated(initialText, originalMessages, options, providerId) {
+  if (options && options.skipContinuation) return initialText;
+  if (providerId === 'pollinations') return initialText; // Pollinations는 내부 처리됨
+  if (typeof originalMessages === 'string') {
+    originalMessages = [{ role: 'user', content: originalMessages }];
+  }
+  if (!Array.isArray(originalMessages)) return initialText;
+  let accumulated = initialText;
+  let attempts = 0;
+  while (attempts < 2 && _looksTruncated(accumulated)) {
+    attempts++;
+    const contMessages = [
+      ...originalMessages,
+      { role: 'assistant', content: accumulated },
+      { role: 'user', content: '위 풀이가 중간에 끊겼습니다. 같은 형식·소제목·항목 번호를 유지하면서, 끊긴 지점에서 바로 이어 끝까지 마무리해 주세요. 새 인사말·반복 금지. 작성 안 된 항목부터 시작.' }
+    ];
+    try {
+      const more = await callAI(contMessages, { ...options, skipTone: true, skipContinuation: true });
+      if (more && more.trim()) {
+        let addition = more.trim();
+        // 중복 제거 — 누적 텍스트 마지막과 겹치면 잘라냄
+        const tail = accumulated.slice(-200).trim();
+        if (tail && addition.length > 50) {
+          const overlap = tail.slice(-80);
+          if (overlap && addition.startsWith(overlap.slice(-40))) {
+            addition = addition.slice(40);
+          }
+        }
+        accumulated += '\n' + addition;
+      } else break;
+    } catch (e) {
+      console.warn('continuation failed:', e);
+      break;
+    }
+  }
+  return accumulated;
+}
+
+// ══════════════════════════════════════════
 //  익명 통계 트래킹 (개인정보 일체 미수집)
 // ══════════════════════════════════════════
 const TRACK_URL = 'https://yeokhak-proxy.jeonyutak.workers.dev/track';
@@ -3371,7 +3420,8 @@ async function callAI(promptOrMessages, options = {}) {
   if (!provider) throw new Error('AI 공급자가 설정되지 않았습니다');
   const key = provider.noKey ? '' : (localStorage.getItem(provider.keyStorage) || '').trim();
   if (!provider.noKey && !key) throw new Error(`${provider.name} API 키 미설정 — 오른쪽 AI 선택에서 키를 입력하세요`);
-  let maxTokens = options.maxTokens || 4000;
+  // 통일된 기본 maxTokens — 모든 AI 동일 (긴 풀이 끝까지 보장)
+  let maxTokens = options.maxTokens || 8000;
   // Pollinations — 출력 한도는 그대로 두어 풀이가 끊기지 않게 함 (prompt만 짧게)
   const isPolli = providerId === 'pollinations';
   // 너무 큰 요청만 안전 한도(8000)로 제한 — 그 미만은 그대로
@@ -3430,7 +3480,8 @@ async function callAI(promptOrMessages, options = {}) {
       const data = await resp.json();
       const text = data.content?.[0]?.text;
       if (!text) throw new Error(`${provider.name}: 빈 응답 (stop_reason: ${data.stop_reason || '?'})`);
-      return cleanMarkdown(text);
+      const cleaned_anthro = cleanMarkdown(text);
+      return await _continueIfTruncated(cleaned_anthro, messages, options, providerId);
     }
     // 🎁 무료 공유 (Cloudflare Worker 프록시 — Gemini API 형식)
     if (providerId === 'free_shared') {
@@ -3464,7 +3515,8 @@ async function callAI(promptOrMessages, options = {}) {
       if (cand.finishReason === 'SAFETY' || cand.finishReason === 'PROHIBITED_CONTENT' || cand.finishReason === 'BLOCKLIST' || cand.finishReason === 'SPII') {
         throw new Error('Gemini 안전 필터에 차단됨 (' + cand.finishReason + '). 🌸 Pollinations 시도해보세요.');
       }
-      return cleanMarkdown(cand.content?.parts?.[0]?.text || '');
+      const rawText_fs = cleanMarkdown(cand.content?.parts?.[0]?.text || '');
+      return await _continueIfTruncated(rawText_fs, messages, options, providerId);
     }
     if (providerId === 'gemini') {
       const contents = messages.map(m => ({
@@ -3492,7 +3544,8 @@ async function callAI(promptOrMessages, options = {}) {
       if (cand.finishReason === 'SAFETY' || cand.finishReason === 'PROHIBITED_CONTENT' || cand.finishReason === 'BLOCKLIST' || cand.finishReason === 'SPII') {
         throw new Error('Gemini 안전 필터에 차단됨 (' + cand.finishReason + '). 🌸 Pollinations 또는 Groq 시도해보세요.');
       }
-      return cleanMarkdown(cand.content?.parts?.[0]?.text || '');
+      const cleaned_gemini = cleanMarkdown(cand.content?.parts?.[0]?.text || '');
+      return await _continueIfTruncated(cleaned_gemini, messages, options, providerId);
     }
     // OpenAI 호환 (OpenAI, Grok, DeepSeek, Groq, Mistral, OpenRouter, Pollinations)
     if (!provider.apiUrl) throw new Error(`${provider.name}: API 엔드포인트 미설정`);
@@ -3611,7 +3664,8 @@ async function callAI(promptOrMessages, options = {}) {
           return cleanMarkdown(accumulated);
         }
 
-        return cleanMarkdown(first.text);
+        const cleaned_oai = cleanMarkdown(first.text);
+        return await _continueIfTruncated(cleaned_oai, messages, options, providerId);
       } catch (e) {
         if (e.name === 'AbortError') throw new Error('사용자가 분석을 중단했습니다');
         lastErr = e;
