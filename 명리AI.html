@@ -3853,8 +3853,7 @@ function loadSaved(id) {
     const banner = document.getElementById('editing-banner');
     if (banner) banner.style.display = 'none';
   }
-  // 다른 탭에 있어도 역학 탭으로 자동 전환
-  switchTab('yeokhak');
+  // 현재 보고 있는 탭은 그대로 유지 — currentReading만 갱신하고 해당 탭 다시 렌더
   currentReading = r;
   const mi = r.mi || 0;
   const lunarStr = r.lunar ? ` · 음력 ${r.lunar.y}.${r.lunar.m}.${r.lunar.d}${r.lunar.leap?'(윤)':''}` : '';
@@ -3898,6 +3897,15 @@ function loadSaved(id) {
   renderChat();
   document.getElementById('chat-input').value = '';
   show('result');
+  // 현재 활성 탭에 맞춰 그 탭의 데이터도 갱신 (yeokhak이 아니면 그 탭 재렌더)
+  const activeTab = (document.querySelector('.nav-btn.active') || {}).dataset
+    ? document.querySelector('.nav-btn.active').dataset.tab
+    : 'yeokhak';
+  if (activeTab === 'unse' && typeof renderCalendar === 'function') renderCalendar();
+  else if (activeTab === 'pastlife' && typeof renderPastLifeTab === 'function') renderPastLifeTab();
+  else if (activeTab === 'region' && typeof renderRegionTab === 'function') renderRegionTab();
+  else if (activeTab === 'stock' && typeof renderStockTab === 'function') renderStockTab();
+  else if (activeTab === 'gunghap' && typeof renderCompatHistory === 'function') renderCompatHistory();
   // 해석이 아직 없는 명식이면 즉시 자동 분석 시작 (백그라운드)
   if (!r.interp) {
     const analyzingId = r.savedAt;
