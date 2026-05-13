@@ -344,6 +344,32 @@
   .form-group { margin-bottom: 14px; }
   /* 자동 인식 영역 (사이드바 — 저장된 명식 위) */
   #auto-parse-card { padding: 14px 14px 12px; }
+  /* 관리자 사이드바 위젯 */
+  .admin-sidebar-widget {
+    padding: 10px 12px !important;
+    background: linear-gradient(180deg, rgba(184,147,47,0.10), rgba(184,147,47,0.04)) !important;
+    border: 1px solid var(--gold-border) !important;
+  }
+  .admin-mini-btn {
+    padding: 3px 8px;
+    background: rgba(184,147,47,0.10);
+    border: 1px solid var(--gold-border);
+    color: var(--gold);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all .15s;
+  }
+  .admin-mini-btn:hover { background: var(--gold-dim); color: var(--gold); }
+  .admin-mini-progress-bar {
+    height: 5px; background: rgba(0,0,0,0.06);
+    border-radius: 3px; margin-top: 4px;
+    overflow: hidden;
+  }
+  .admin-mini-progress-fill {
+    height: 100%; border-radius: 3px;
+    transition: width 0.4s;
+  }
   #auto-parse-text {
     width: 100%;
     min-height: 80px;
@@ -2291,7 +2317,6 @@
     <button class="nav-btn" data-tab="region" onclick="switchTab('region')">지 역 운<br>해 석</button>
     <button class="nav-btn" data-tab="stock" onclick="switchTab('stock')">📈 주 식 운<br>해 석</button>
     <button class="nav-btn" data-tab="study" onclick="switchTab('study')">역 학<br>공 부</button>
-    <button class="nav-btn nav-btn-admin" data-tab="admin" onclick="switchTab('admin')">🔒 관 리 자<br>모 드</button>
   </aside>
   <div class="main-col">
   <!-- TAB: 역학 -->
@@ -2819,6 +2844,13 @@
 
   </div><!-- /main-col -->
   <aside class="sidebar">
+    <div class="card admin-sidebar-widget" id="admin-sidebar-widget">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">
+        <div style="font-family:'Noto Serif KR', serif; font-size:11px; color:var(--gold); letter-spacing:2px;">🎁 무 료 &nbsp; 공 유 &nbsp; 한 도</div>
+        <button class="admin-mini-btn" onclick="switchTab('admin')" title="관리자 모드">🔒</button>
+      </div>
+      <div id="admin-mini-stats" style="font-size:11px; color:var(--text-default); line-height:1.5;">불러오는 중...</div>
+    </div>
     <div class="card" id="auto-parse-card">
       <div class="section-label">📋 &nbsp; 텍 스 트 &nbsp; 자 동 &nbsp; 인 식</div>
       <textarea id="auto-parse-text" placeholder="예) 홍길동, 1995년 10월 15일 오전 9시 30분, 남
@@ -3412,7 +3444,42 @@ function trackEvent(category, action) {
 // 페이지 첫 로드 시 방문 기록
 window.addEventListener('load', () => {
   setTimeout(() => trackEvent('visit', 'pageload'), 500);
+  setTimeout(loadAdminSidebarStats, 1000);
+  setInterval(loadAdminSidebarStats, 5 * 60 * 1000); // 5분마다 갱신
 });
+
+// 사이드바 위젯 — 무료 공유 한도/사용량 표시
+async function loadAdminSidebarStats() {
+  const el = document.getElementById('admin-mini-stats');
+  if (!el) return;
+  try {
+    const resp = await fetch('https://yeokhak-proxy.jeonyutak.workers.dev/');
+    if (!resp.ok) throw new Error('서버 응답 오류');
+    const data = await resp.json();
+    const used = data.today_total || 0;
+    const limit = data.total_daily_limit || 200;
+    const ipLimit = data.ip_daily_limit || 20;
+    const pct = Math.min(100, Math.floor((used / limit) * 100));
+    const color = pct >= 90 ? 'var(--fire)' : pct >= 60 ? 'var(--gold)' : '#4a8559';
+    const resetSec = data.reset_in_seconds || 0;
+    const h = Math.floor(resetSec / 3600);
+    const m = Math.floor((resetSec % 3600) / 60);
+    el.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:3px;">
+        <span style="color:${color}; font-weight:700; font-size:14px;">${used}</span>
+        <span style="font-size:10px; color:var(--text-muted);">/ ${limit} 회</span>
+      </div>
+      <div class="admin-mini-progress-bar">
+        <div class="admin-mini-progress-fill" style="width:${pct}%; background:${color};"></div>
+      </div>
+      <div style="font-size:9px; color:var(--text-muted); margin-top:4px; line-height:1.5;">
+        개인 한도 ${ipLimit}회/일 · 리셋까지 ${h}시간 ${m}분
+      </div>
+    `;
+  } catch (e) {
+    el.innerHTML = `<div style="color:var(--text-muted); font-size:10px;">⚠ Worker 연결 실패</div>`;
+  }
+}
 
 async function callAI(promptOrMessages, options = {}) {
   const providerId = getProviderId();
@@ -7000,24 +7067,29 @@ async function loadAdminStats() {
   if (!el) return;
   el.innerHTML = `<div style="text-align:center; padding:30px 0; color:var(--text-muted);">${loadingHTML('통계 불러오는 중')}</div>`;
   try {
-    const resp = await fetch(_ADMIN_STATS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: ADMIN_PASSWORD, days: 30 })
-    });
-    if (!resp.ok) {
-      const data = await resp.json().catch(() => ({}));
-      el.innerHTML = `<div style="color:var(--fire); padding:20px; text-align:center;">통계 조회 실패: ${escapeHTML(data.message || resp.status)}</div>`;
+    // 통계와 현재 한도 정보를 병렬 조회
+    const [statsResp, healthResp] = await Promise.all([
+      fetch(_ADMIN_STATS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: ADMIN_PASSWORD, days: 30 })
+      }),
+      fetch('https://yeokhak-proxy.jeonyutak.workers.dev/').catch(() => null)
+    ]);
+    if (!statsResp.ok) {
+      const data = await statsResp.json().catch(() => ({}));
+      el.innerHTML = `<div style="color:var(--fire); padding:20px; text-align:center;">통계 조회 실패: ${escapeHTML(data.message || statsResp.status)}</div>`;
       return;
     }
-    const { stats } = await resp.json();
-    renderAdminStatsContent(stats);
+    const { stats } = await statsResp.json();
+    const health = healthResp && healthResp.ok ? await healthResp.json().catch(() => null) : null;
+    renderAdminStatsContent(stats, health);
   } catch (e) {
     el.innerHTML = `<div style="color:var(--fire); padding:20px; text-align:center;">오류: ${escapeHTML(e.message)}</div>`;
   }
 }
 
-function renderAdminStatsContent(s) {
+function renderAdminStatsContent(s, health) {
   const el = document.getElementById('admin-stats-content');
   if (!el) return;
   // 최근 30일 합산
@@ -7025,6 +7097,37 @@ function renderAdminStatsContent(s) {
   const totalUnique = Object.values(s.unique_visitors || {}).reduce((a, b) => a + b, 0);
   const totalAI = Object.values(s.ai_providers || {}).reduce((a, b) => a + b, 0);
   const totalFree = Object.values(s.usage || {}).reduce((a, b) => a + b, 0);
+
+  // 오늘 한도/사용량 카드 (health 데이터 있을 때만)
+  let todayHTML = '';
+  if (health) {
+    const used = health.today_total || 0;
+    const limit = health.total_daily_limit || 200;
+    const ipLimit = health.ip_daily_limit || 20;
+    const pct = Math.min(100, Math.floor((used / limit) * 100));
+    const color = pct >= 90 ? 'var(--fire)' : pct >= 60 ? 'var(--gold)' : '#4a8559';
+    const resetSec = health.reset_in_seconds || 0;
+    const h = Math.floor(resetSec / 3600);
+    const m = Math.floor((resetSec % 3600) / 60);
+    todayHTML = `
+      <div style="padding:12px 14px; margin-bottom:18px; background:linear-gradient(180deg, rgba(184,147,47,0.10), rgba(184,147,47,0.04)); border:1px solid var(--gold-border); border-left:4px solid var(--gold); border-radius:6px;">
+        <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
+          <div style="font-family:'Noto Serif KR',serif; font-size:13px; color:var(--gold); letter-spacing:2px;">🎁 오 늘 의 &nbsp; 무 료 &nbsp; 공 유 &nbsp; 한 도</div>
+          <div style="font-size:10px; color:var(--text-muted);">${health.today_date || ''}</div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px;">
+          <span style="color:${color}; font-weight:700; font-size:22px; font-family:'Noto Serif KR',serif;">${used} <span style="font-size:14px; color:var(--text-muted); font-weight:400;">/ ${limit} 회</span></span>
+          <span style="font-size:11px; color:var(--text-muted);">개인 한도 ${ipLimit}회/일</span>
+        </div>
+        <div style="height:10px; background:rgba(0,0,0,0.06); border-radius:5px; overflow:hidden;">
+          <div style="height:100%; width:${pct}%; background:${color}; transition:width 0.4s;"></div>
+        </div>
+        <div style="font-size:10px; color:var(--text-muted); margin-top:6px;">
+          ${pct}% 사용 · 자정(KST)까지 ${h}시간 ${m}분 · ${health.reset || ''}
+        </div>
+      </div>
+    `;
+  }
 
   // 일별 막대 차트 (최근 14일)
   const recent14 = (s.days || []).slice(0, 14).reverse();
@@ -7081,6 +7184,7 @@ function renderAdminStatsContent(s) {
   }).join('');
 
   el.innerHTML = `
+    ${todayHTML}
     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:18px;">
       <div class="learn-stat-box">
         <div class="learn-stat-label">최근 30일 고유 방문자</div>
@@ -9392,17 +9496,18 @@ ${type === 'daewoon' ? `${data.age}~${data.age+9}세 (${data.year}년부터)` : 
 - 부득이한 용어는 괄호로 짧게 풀이
 - 위 "관계"가 있으면 그 의미를 풀어 설명 — 충=대립/변화, 합=결합, 형=마찰, 해=피해, 파=깨짐, 도화=인기/이성, 역마=이동, 화개=고독/예술, 귀인=도움
 - 신살이 있으면 그 영향도 한 줄로 언급
-- 전체 6~9줄 (300~450자)
+- 전체 12~18줄 (700~1100자)
+- ★ 6개 항목 모두 빠짐없이 끝까지 작성. 중간에 자르지 말 것
 
-[항목 — 빠짐없이]
-1. 이 시기의 큰 에너지·분위기 한 줄
-2. 십성 작용 — ${tgSS}/${zzSS} 의미를 이 사람 인생에 적용
-3. 관계·신살의 영향 (해당되는 것만)
-4. ★ 장점 — 이 시기의 강점·기회 (구체적 영역·행동 예시 2~3줄)
-5. ★ 단점 — 주의·취약 지점·피해야 할 행동 (2~3줄)
-6. 추천 태도 한 줄`;
+[항목 — 빠짐없이 끝까지]
+1. 이 시기의 큰 에너지·분위기 (2~3줄)
+2. 십성 작용 — ${tgSS}/${zzSS} 의미를 이 사람 인생에 적용 (2~3줄)
+3. 관계·신살의 영향 (해당되는 것만, 2~3줄)
+4. ★ 장점 — 이 시기의 강점·기회 (구체적 영역·행동 예시 3~4줄)
+5. ★ 단점 — 주의·취약 지점·피해야 할 행동 (3~4줄)
+6. 추천 태도·한 마디 마무리 (1~2줄)`;
   try {
-    const text = await callAI(prompt, { maxTokens: 1500 }) || '결과 없음';
+    const text = await callAI(prompt, { maxTokens: 4000 }) || '결과 없음';
     textEl.textContent = text;
     currentReading.fortuneCache[cacheKey] = text;
     upsertReading({ ...currentReading });
