@@ -223,6 +223,19 @@
     color: var(--gold);
     font-weight: 700;
   }
+  /* 관리자 전용 탭 — 자물쇠 표시, 약간 다른 색 */
+  .nav-btn-admin {
+    margin-top: auto;
+    border-style: dashed;
+    opacity: 0.85;
+  }
+  .nav-btn-admin.unlocked {
+    border-style: solid;
+    opacity: 1;
+  }
+  .nav-btn-admin.active {
+    background: linear-gradient(180deg, rgba(184,147,47,0.18), rgba(184,147,47,0.10));
+  }
   /* 폼 카드만 폭 제한 */
   #input-screen .form-card { max-width: 380px; margin: 0 auto; }
   /* 수정 모드 배너 */
@@ -1064,6 +1077,64 @@
   }
   .pastlife-go-btn:hover { background: var(--gold-dim); border-color: var(--gold); }
   .pastlife-go-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  /* 주식운 */
+  .stock-sipsin-grid {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
+    margin: 10px 0;
+  }
+  .stock-sipsin-box {
+    padding: 8px 6px;
+    background: rgba(255,255,255,0.55);
+    border: 1px solid var(--gold-border);
+    border-radius: 6px;
+    text-align: center;
+  }
+  .stock-sipsin-label {
+    font-size: 10px; color: var(--text-muted);
+    letter-spacing: 1px; margin-bottom: 3px;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+  .stock-sipsin-val {
+    font-size: 16px; font-weight: 700;
+    font-family: 'Noto Serif KR', serif;
+  }
+  .stock-sipsin-detail {
+    font-size: 10px; color: var(--text-muted);
+    margin-top: 3px; line-height: 1.3;
+  }
+  .stock-sectors-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 8px; margin: 10px 0;
+  }
+  .stock-sector-card {
+    padding: 10px;
+    background: rgba(255,255,255,0.5);
+    border: 1px solid var(--gold-border);
+    border-left: 4px solid;
+    border-radius: 6px;
+  }
+  .stock-sector-card.strong { background: rgba(184,147,47,0.10); }
+  .stock-sector-card.weak { background: rgba(0,0,0,0.04); opacity: 0.85; }
+  .stock-sector-name {
+    font-weight: 700; font-size: 13px;
+    font-family: 'Noto Serif KR', serif;
+    letter-spacing: 1px; margin-bottom: 4px;
+  }
+  .stock-sector-flag {
+    display: inline-block;
+    padding: 1px 6px; margin-left: 6px;
+    border-radius: 8px;
+    font-size: 9px; font-weight: 700;
+    background: rgba(184,147,47,0.15); color: var(--gold);
+    font-family: 'Noto Sans KR', sans-serif;
+    letter-spacing: 0.5px;
+  }
+  .stock-sector-flag.weak { background: rgba(99,140,184,0.15); color: #4a6a8a; }
+  .stock-sector-list {
+    font-size: 11px; color: var(--text-default);
+    line-height: 1.7;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
   /* 지역운 */
   /* 지역 통합 검색 */
   .region-search-wrap {
@@ -2180,8 +2251,9 @@
     <button class="nav-btn" data-tab="unse" onclick="switchTab('unse')">일 운<br>해 석</button>
     <button class="nav-btn" data-tab="pastlife" onclick="switchTab('pastlife')">전 생<br>해 석</button>
     <button class="nav-btn" data-tab="region" onclick="switchTab('region')">지 역 운<br>해 석</button>
-    <button class="nav-btn" data-tab="learn" onclick="switchTab('learn')">강 의<br>학 습</button>
+    <button class="nav-btn" data-tab="stock" onclick="switchTab('stock')">📈 주 식 운<br>해 석</button>
     <button class="nav-btn" data-tab="study" onclick="switchTab('study')">역 학<br>공 부</button>
+    <button class="nav-btn nav-btn-admin" data-tab="learn" onclick="switchTab('learn')">🔒 강 의<br>학 습</button>
   </aside>
   <div class="main-col">
   <!-- TAB: 역학 -->
@@ -2513,8 +2585,17 @@
     </div>
   </div>
 
-  <!-- TAB: 강의 학습 -->
+  <!-- TAB: 강의 학습 (관리자 전용) -->
   <div id="tab-learn" style="display:none;">
+    <div class="card" style="background: rgba(184,147,47,0.06); border-left: 3px solid var(--gold);">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+        <div>
+          <div style="font-family:'Noto Serif KR',serif; font-size:14px; color:var(--gold); letter-spacing:3px;">🔓 &nbsp; 관 리 자 &nbsp; 모 드</div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">강의 학습은 관리자 전용 영역입니다. 학습된 노트는 모든 해석에 자동 반영됩니다.</div>
+        </div>
+        <button onclick="adminAuthLogout()" style="padding:7px 12px; background:rgba(184,60,50,0.08); border:1px solid rgba(184,60,50,0.3); color:var(--fire); border-radius:6px; cursor:pointer; font-family:'Noto Sans KR',sans-serif; font-size:11px; letter-spacing:1px; white-space:nowrap;">🚪 로그아웃</button>
+      </div>
+    </div>
     <div class="card">
       <div class="section-label">🤖 &nbsp; 자 동 &nbsp; 강 의 &nbsp; 학 습 <span class="section-hint">— 유튜브 인기 역학 강의 자동 검색·학습</span></div>
       <div style="font-size:11px; color:var(--text-muted); margin-bottom:10px; line-height:1.6;">
@@ -2630,6 +2711,31 @@
     <div class="card">
       <div class="section-label">저 장 된 &nbsp; 학 습 &nbsp; 노 트 <span class="section-hint">— ✓ 체크 시 모든 해석에 반영</span></div>
       <div id="learn-list"></div>
+    </div>
+  </div>
+
+  <!-- TAB: 주식운 해석 -->
+  <div id="tab-stock" style="display:none;">
+    <div class="card">
+      <div class="section-label">📈 &nbsp; 주 식 운 &nbsp; 해 석 &nbsp; (財 運) <span class="section-hint">— 사주의 재성·식상·비겁 + 五行 흐름으로 본 투자 통찰</span></div>
+      <div id="stock-no-person" class="cal-no-person" style="display:none;">
+        먼저 <b>역학 다각적 해석</b> 탭에서 명식을 분석하거나<br>오른쪽 "저장된 명식"에서 하나를 클릭한 뒤 이용하세요.
+      </div>
+      <div id="stock-content">
+        <div id="stock-header"></div>
+        <div id="stock-sipsin-card"></div>
+        <div id="stock-sectors"></div>
+      </div>
+    </div>
+    <div class="card" id="stock-main-card" style="display:none;">
+      <div class="section-label">A I &nbsp; 주 식 운 &nbsp; 통 합 &nbsp; 풀 이
+        <button class="re-analyze-btn" onclick="reAnalyzeStock()">↻ 다시 분석</button>
+      </div>
+      <button class="pastlife-go-btn" id="stock-go-btn" onclick="analyzeStock()">주 식 운 &nbsp; 풀 이 &nbsp; 시 작</button>
+      <div class="interp" id="stock-text" style="margin-top:12px;"></div>
+      <div style="font-size:10px; color:var(--text-muted); margin-top:8px; padding:6px 10px; background:rgba(184,60,50,0.05); border-left:2px solid rgba(184,60,50,0.3); border-radius:3px;">
+        ※ 본 풀이는 운명학적 참고용입니다. 실제 투자 결정과 그 결과는 본인 책임입니다. 종목 추천이 아닌, 본인 성향과 운의 흐름을 점검하는 도구로 활용하세요.
+      </div>
     </div>
   </div>
 
@@ -3117,21 +3223,42 @@ const INTERP_TONE_GUIDE = `
 - 명리 전문 용어는 풀어서 일반인이 알아듣게
 - 사주를 "예언"이 아닌 "지도"로 — 어느 길이 보이는지 짚어주되 걸어가는 것은 본인의 몫임을 잊지 않게`;
 
+// Pollinations 전용 간소화 톤 지침 (속도 우선)
+const INTERP_TONE_GUIDE_SHORT = `
+
+[톤 지침]
+- 命(타고난 그릇)과 運(흐르는 시기)를 구분, 단정 금지
+- "~한 경향이 있다" 식 어법, 가능성·선택의 여지 남기기
+- 운명은 닫힌 감옥이 아닌 가능성의 구조
+- 전문 용어는 풀어쓰기
+- 시적이되 허황되지 않게`;
+
 // 통변 톤을 prompt에 자동 첨부 + 학습 노트도 함께 주입
 function _withToneGuide(prompt) {
   if (typeof prompt !== 'string') return prompt;
   // 이미 톤 지침이 포함되어 있으면 중복 안 함
-  if (prompt.indexOf('통변 공통 톤') >= 0) return prompt;
-  let extras = INTERP_TONE_GUIDE;
+  if (prompt.indexOf('통변 공통 톤') >= 0 || prompt.indexOf('[톤 지침]') >= 0) return prompt;
+  // Pollinations일 때는 짧은 톤 지침 사용 + 학습 노트도 짧게
+  const isPolli = (typeof getProviderId === 'function') && getProviderId() === 'pollinations';
+  let extras = isPolli ? INTERP_TONE_GUIDE_SHORT : INTERP_TONE_GUIDE;
   // 활성화된 강의 학습 노트 주입
   try {
     const notes = (typeof getEnabledLearnNotes === 'function') ? getEnabledLearnNotes() : [];
     if (notes.length) {
-      extras += `\n\n═══ 사용자가 학습한 강의 노트 (반드시 적용) ═══\n`;
-      notes.forEach((n, i) => {
-        extras += `\n[학습 노트 ${i+1}] ${n.title || ''}${n.purpose ? ' — ' + n.purpose : ''}\n${n.content}\n`;
-      });
-      extras += `\n위 학습 노트의 규칙·관점·통찰을 본 해석에 자연스럽게 녹여 적용할 것. 단, 학파 이름·강의 출처는 본문에 노출하지 말고 본문은 일반 풀이로 작성하되, 노트가 가리키는 통변 방향을 따를 것.`;
+      if (isPolli) {
+        // Pollinations — 각 노트의 첫 600자만, 최대 3개
+        extras += `\n\n[참고 학습 노트]`;
+        notes.slice(0, 3).forEach((n, i) => {
+          const snippet = (n.content || '').slice(0, 600);
+          extras += `\n${i+1}. ${snippet}`;
+        });
+      } else {
+        extras += `\n\n═══ 사용자가 학습한 강의 노트 (반드시 적용) ═══\n`;
+        notes.forEach((n, i) => {
+          extras += `\n[학습 노트 ${i+1}] ${n.title || ''}${n.purpose ? ' — ' + n.purpose : ''}\n${n.content}\n`;
+        });
+        extras += `\n위 학습 노트의 규칙·관점·통찰을 본 해석에 자연스럽게 녹여 적용할 것. 단, 학파 이름·강의 출처는 본문에 노출하지 말고 본문은 일반 풀이로 작성하되, 노트가 가리키는 통변 방향을 따를 것.`;
+      }
     }
   } catch (e) { /* ignore */ }
   return prompt + extras;
@@ -3144,7 +3271,13 @@ async function callAI(promptOrMessages, options = {}) {
   if (!provider) throw new Error('AI 공급자가 설정되지 않았습니다');
   const key = provider.noKey ? '' : (localStorage.getItem(provider.keyStorage) || '').trim();
   if (!provider.noKey && !key) throw new Error(`${provider.name} API 키 미설정 — 오른쪽 AI 선택에서 키를 입력하세요`);
-  const maxTokens = options.maxTokens || 4000;
+  let maxTokens = options.maxTokens || 4000;
+  // Pollinations — 출력 한도는 그대로 두어 풀이가 끊기지 않게 함 (prompt만 짧게)
+  const isPolli = providerId === 'pollinations';
+  // 너무 큰 요청만 안전 한도(8000)로 제한 — 그 미만은 그대로
+  if (isPolli) {
+    maxTokens = Math.min(8000, maxTokens);
+  }
   const model = options.model || provider.defaultModel;
   const system = options.system || '';
   // 톤 지침 자동 첨부 (skipTone:true 옵션이면 건너뜀)
@@ -3166,8 +3299,10 @@ async function callAI(promptOrMessages, options = {}) {
   const controller = new AbortController();
   _activeAbort = controller;
   const signal = controller.signal;
-  // 진행률 추정 — maxTokens 기반 (대략 토큰당 0.006초)
-  const estimatedSec = Math.max(15, Math.min(120, maxTokens * 0.006));
+  // 진행률 추정 — maxTokens 기반 (공급자별 다름)
+  // Pollinations는 무료 공유 자원이라 느린 편 (토큰당 0.012초)
+  const tokenSec = isPolli ? 0.012 : 0.006;
+  const estimatedSec = Math.max(15, Math.min(180, maxTokens * tokenSec));
   _startProgress(estimatedSec);
   try {
     if (providerId === 'anthropic') {
@@ -3445,7 +3580,10 @@ function clearAllHistoryData() {
   alert('해석 기록을 모두 삭제했습니다.');
 }
 // 초기 표시 + 새 기록 저장될 때 갱신
-window.addEventListener('load', () => { setTimeout(refreshHistoryStats, 100); });
+window.addEventListener('load', () => {
+  setTimeout(refreshHistoryStats, 100);
+  setTimeout(updateAdminLockUI, 100);
+});
 
 function _getHistory(key) {
   try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
@@ -4091,9 +4229,59 @@ function show(id) {
   });
 }
 
+// ══════════════════════════════════════════
+//  관리자 인증 — 강의 학습 탭 보호
+// ══════════════════════════════════════════
+// 비밀번호 — 본인이 수정 가능: 아래 줄의 따옴표 안 값을 원하는 비밀번호로 교체
+const ADMIN_PASSWORD = "662233";
+
+function isAdminAuth() {
+  return localStorage.getItem('admin_auth_v1') === '1';
+}
+function adminAuthLogin(pw) {
+  if (pw === ADMIN_PASSWORD) {
+    localStorage.setItem('admin_auth_v1', '1');
+    updateAdminLockUI();
+    return true;
+  }
+  return false;
+}
+function adminAuthLogout() {
+  if (!confirm('관리자 모드를 해제할까요? (강의 학습 탭에 다시 들어가려면 비밀번호 필요)')) return;
+  localStorage.removeItem('admin_auth_v1');
+  updateAdminLockUI();
+  switchTab('yeokhak');
+  alert('관리자 모드 해제됨');
+}
+function updateAdminLockUI() {
+  document.querySelectorAll('.nav-btn-admin').forEach(b => {
+    b.classList.toggle('unlocked', isAdminAuth());
+    const label = b.querySelector('br') ? b.innerHTML : '';
+    // 자물쇠 아이콘 갱신
+    if (isAdminAuth()) {
+      b.innerHTML = b.innerHTML.replace('🔒', '🔓');
+    } else {
+      b.innerHTML = b.innerHTML.replace('🔓', '🔒');
+    }
+  });
+}
+function tryEnterLearnTab() {
+  if (isAdminAuth()) return true;
+  const pw = prompt('🔒 관리자 비밀번호 입력\n\n강의 학습은 관리자 전용 메뉴입니다.');
+  if (pw === null) return false;
+  if (adminAuthLogin(pw)) {
+    alert('✓ 관리자 인증 성공');
+    return true;
+  }
+  alert('✗ 비밀번호가 틀렸습니다');
+  return false;
+}
+
 // 왼쪽 탭 전환
 function switchTab(tab) {
-  ['yeokhak', 'gunghap', 'tarot', 'unse', 'pastlife', 'region', 'learn', 'study'].forEach(t => {
+  // 강의 학습 탭은 관리자 인증 필요
+  if (tab === 'learn' && !tryEnterLearnTab()) return;
+  ['yeokhak', 'gunghap', 'tarot', 'unse', 'pastlife', 'region', 'stock', 'learn', 'study'].forEach(t => {
     const el = document.getElementById('tab-' + t);
     if (!el) return;
     el.style.display = t === tab ? '' : 'none';
@@ -4104,6 +4292,7 @@ function switchTab(tab) {
   if (tab === 'unse') renderCalendar();
   if (tab === 'pastlife') renderPastLifeTab();
   if (tab === 'region') renderRegionTab();
+  if (tab === 'stock') renderStockTab();
   if (tab === 'learn') renderLearnTab();
   if (tab === 'study') renderStudyTab();
 }
@@ -6141,6 +6330,284 @@ function groupNotesByCategory() {
     });
   });
   return groups;
+}
+
+// ══════════════════════════════════════════
+//  주식운 해석 (財運)
+// ══════════════════════════════════════════
+const OH_SECTORS = {
+  '木': { kr:'木 · 목', sectors:['교육·출판·콘텐츠','섬유·의류·패션','바이오·제약 원천','농업·임업·식품','인테리어·가구','환경·재생에너지','종이·인쇄'] },
+  '火': { kr:'火 · 화', sectors:['전자·반도체','IT·소프트웨어','미디어·방송·엔터','에너지·전력','광고·홍보','뷰티·화장품','항공·우주','조명'] },
+  '土': { kr:'土 · 토', sectors:['부동산·건설','시멘트·요업','가공식품','광업·세라믹','보험','지주회사','농지·자원'] },
+  '金': { kr:'金 · 금', sectors:['금융·은행·증권','철강·금속·기계','자동차·중공업','귀금속·시계','법률·회계','국방·방산','반도체 장비'] },
+  '水': { kr:'水 · 수', sectors:['물류·해운·운송','주류·음료','유통·도소매','관광·여행','수산·어업','수처리·환경','정보·통신'] }
+};
+
+function _stockComputeStats(saju) {
+  const dr = saju.pillars[2];
+  if (!dr || dr.missing) return null;
+  const dayTG = dr.tg;
+  const cnt = { '비견':0,'겁재':0,'식신':0,'상관':0,'편재':0,'정재':0,'편관':0,'정관':0,'편인':0,'정인':0 };
+  saju.pillars.forEach((p, i) => {
+    if (p.missing) return;
+    if (i !== 2) cnt[p.ss]++;
+    const zzSS = _sipsinForZZ(dayTG, p.zz);
+    if (cnt[zzSS] !== undefined) cnt[zzSS]++;
+  });
+  return {
+    jaeong: cnt.편재 + cnt.정재,   // 재성
+    sikSang: cnt.식신 + cnt.상관,  // 식상
+    biGyeop: cnt.비견 + cnt.겁재,  // 비겁
+    insung: cnt.편인 + cnt.정인,   // 인성
+    gwanseong: cnt.편관 + cnt.정관,// 관성
+    detail: cnt
+  };
+}
+
+function renderStockTab() {
+  const noP = document.getElementById('stock-no-person');
+  const content = document.getElementById('stock-content');
+  const mainCard = document.getElementById('stock-main-card');
+  if (!currentReading || !currentReading.saju) {
+    noP.style.display = 'block';
+    content.style.display = 'none';
+    if (mainCard) mainCard.style.display = 'none';
+    return;
+  }
+  noP.style.display = 'none';
+  content.style.display = 'block';
+  if (mainCard) mainCard.style.display = 'block';
+
+  const r = currentReading;
+  const saju = r.saju;
+  const stats = _stockComputeStats(saju);
+  if (!stats) {
+    content.innerHTML = '<div style="color:var(--text-muted); padding:12px;">시간 미상으로는 분석에 제약이 있습니다. 일주를 중심으로 풀이됩니다.</div>';
+  }
+  const strongest = Object.entries(saju.oh).sort((a,b) => b[1]-a[1])[0];
+  const weakest = Object.entries(saju.oh).sort((a,b) => a[1]-b[1])[0];
+  const hnjs = calcHanNanJoSeup(saju);
+  const oa = getOriginalAnalysis(saju);
+  const sinsalRel = (oa.sinsals || []).filter(s => /도화|역마|천을|양인|공망|문창/.test(s));
+
+  // 헤더
+  document.getElementById('stock-header').innerHTML = `
+    <div class="region-header">
+      <b>${r.name || '(이름 없음)'}</b> · 일간 <b>${saju.ilgan}(${saju.ilganKR})</b> · ${r.gender}
+      <br>강한 五行: <b style="color:${ohColorForOh(strongest[0])}">${strongest[0]}(${strongest[1]})</b> &nbsp; / &nbsp; 약한 五行: <b style="color:${ohColorForOh(weakest[0])}">${weakest[0]}(${weakest[1]})</b>
+      <br>온도 ${hnjs.temp} · 습도 ${hnjs.humid}
+      ${sinsalRel.length ? `<br>재물·투자 관련 신살: <b style="color:var(--gold)">${sinsalRel.join(' · ')}</b>` : ''}
+    </div>
+  `;
+
+  // 십신 분포 (재물 관점)
+  if (stats) {
+    document.getElementById('stock-sipsin-card').innerHTML = `
+      <div class="section-label" style="margin-top:14px; font-size:13px;">▸ 십 신 분 포 (재물 관점)</div>
+      <div class="stock-sipsin-grid">
+        <div class="stock-sipsin-box" style="border-color:#b8932f;">
+          <div class="stock-sipsin-label">재 성</div>
+          <div class="stock-sipsin-val" style="color:#b8932f;">${stats.jaeong}</div>
+          <div class="stock-sipsin-detail">정${stats.detail.정재}·편${stats.detail.편재}</div>
+        </div>
+        <div class="stock-sipsin-box" style="border-color:#6b8e5a;">
+          <div class="stock-sipsin-label">식 상</div>
+          <div class="stock-sipsin-val" style="color:#6b8e5a;">${stats.sikSang}</div>
+          <div class="stock-sipsin-detail">신${stats.detail.식신}·관${stats.detail.상관}</div>
+        </div>
+        <div class="stock-sipsin-box" style="border-color:#b86b5c;">
+          <div class="stock-sipsin-label">비 겁</div>
+          <div class="stock-sipsin-val" style="color:#b86b5c;">${stats.biGyeop}</div>
+          <div class="stock-sipsin-detail">견${stats.detail.비견}·겁${stats.detail.겁재}</div>
+        </div>
+        <div class="stock-sipsin-box" style="border-color:#6b88a8;">
+          <div class="stock-sipsin-label">인 성</div>
+          <div class="stock-sipsin-val" style="color:#6b88a8;">${stats.insung}</div>
+          <div class="stock-sipsin-detail">정${stats.detail.정인}·편${stats.detail.편인}</div>
+        </div>
+        <div class="stock-sipsin-box" style="border-color:#a8a89c;">
+          <div class="stock-sipsin-label">관 성</div>
+          <div class="stock-sipsin-val" style="color:#a8a89c;">${stats.gwanseong}</div>
+          <div class="stock-sipsin-detail">정${stats.detail.정관}·편${stats.detail.편관}</div>
+        </div>
+      </div>
+      <div style="font-size:11px; color:var(--text-muted); line-height:1.7; padding:6px 10px; background:rgba(255,255,255,0.4); border-radius:5px;">
+        <b>재성</b>은 재물의 그릇 / <b>식상</b>은 그릇을 채우는 능력 (식상생재 = 재능이 부를 만듦) / <b>비겁</b>은 경쟁자 (강하면 분산투자 권장) / <b>인성</b>은 신중함 / <b>관성</b>은 안정·책임
+      </div>
+    `;
+  }
+
+  // 추천 섹터
+  document.getElementById('stock-sectors').innerHTML = `
+    <div class="section-label" style="margin-top:14px; font-size:13px;">▸ 五 行 별 추 천 섹 터</div>
+    <div class="stock-sectors-grid">
+      ${OH_ORDER.map(oh => {
+        const info = OH_SECTORS[oh];
+        const score = saju.oh[oh];
+        const isStrong = oh === strongest[0] && score > 0;
+        const isWeak = oh === weakest[0];
+        const cls = isStrong ? 'strong' : (isWeak ? 'weak' : '');
+        const flag = isStrong
+          ? '<span class="stock-sector-flag">★ 본인 강세</span>'
+          : (isWeak ? '<span class="stock-sector-flag weak">◇ 보완 필요</span>' : '');
+        return `<div class="stock-sector-card ${cls}" style="border-left-color:${ohColorForOh(oh)};">
+          <div class="stock-sector-name" style="color:${ohColorForOh(oh)};">${info.kr} (${score})${flag}</div>
+          <div class="stock-sector-list">${info.sectors.join(' · ')}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="font-size:11px; color:var(--text-muted); padding:6px 10px; background:rgba(255,255,255,0.4); border-radius:5px; line-height:1.7;">
+      <b>★ 본인 강세 五行</b>: 익숙한 분야, 직관이 잘 작동. <b>◇ 보완 필요 五行</b>: 부족한 五行을 보충하는 산업도 유효.
+      <br>강한 분야에만 몰입하면 편중 위험, 보완 五行 섹터로 분산하면 균형이 잡힘.
+    </div>
+  `;
+
+  // 캐시된 풀이가 있으면 표시
+  const textEl = document.getElementById('stock-text');
+  const btn = document.getElementById('stock-go-btn');
+  if (r.stockInterp) {
+    textEl.textContent = r.stockInterp;
+    btn.style.display = 'none';
+  } else {
+    textEl.textContent = '';
+    btn.style.display = 'block';
+  }
+}
+
+async function analyzeStock() {
+  if (!currentReading || !currentReading.saju) {
+    alert('명식을 먼저 분석하세요'); return;
+  }
+  const key = getApiKey();
+  if (!key) { alert('API 키가 필요합니다'); return; }
+
+  const r = currentReading;
+  const saju = r.saju;
+  const stats = _stockComputeStats(saju);
+  const hnjs = calcHanNanJoSeup(saju);
+  const oa = getOriginalAnalysis(saju);
+  const strongest = Object.entries(saju.oh).sort((a,b) => b[1]-a[1])[0];
+  const weakest = Object.entries(saju.oh).sort((a,b) => a[1]-b[1])[0];
+  const [yr, mr, dr, hr] = saju.pillars;
+
+  // 현재 대운·세운
+  const now = new Date().getFullYear();
+  const currentAge = now - r.y;
+  let currentDaewoonStr = '';
+  if (r.daewoon && r.daewoon.list) {
+    const cd = r.daewoon.list.find(d => currentAge >= d.age && currentAge <= d.age + 9);
+    if (cd) currentDaewoonStr = `[현재 대운] ${cd.age}~${cd.age+9}세 · ${cd.tgChar}${cd.zzChar}`;
+  }
+  let currentSewoonStr = '';
+  if (r.sewoon) {
+    const cs = r.sewoon.find(s => s.year === now);
+    if (cs) currentSewoonStr = `[현재 세운] ${now}년 · ${cs.tgChar}${cs.zzChar}`;
+  }
+
+  const sipsinBlock = stats ? `
+[십신 분포 (재물·투자 관점)]
+재성(財星): ${stats.jaeong} (정재 ${stats.detail.정재} · 편재 ${stats.detail.편재}) — 정재=안정 재물, 편재=변동·기회 재물
+식상(食傷): ${stats.sikSang} (식신 ${stats.detail.식신} · 상관 ${stats.detail.상관}) — 재능·끼·아이디어, 재성을 키우는 동력
+비겁(比劫): ${stats.biGyeop} (비견 ${stats.detail.비견} · 겁재 ${stats.detail.겁재}) — 경쟁·재물 다툼, 강하면 분산 필요
+인성(印星): ${stats.insung} (정인 ${stats.detail.정인} · 편인 ${stats.detail.편인}) — 신중함, 정보 분석
+관성(官星): ${stats.gwanseong} (정관 ${stats.detail.정관} · 편관 ${stats.detail.편관}) — 책임·통제` : '[십신 분포] 시간 미상으로 일부 제한적';
+
+  const textEl = document.getElementById('stock-text');
+  const btn = document.getElementById('stock-go-btn');
+  btn.disabled = true;
+  textEl.innerHTML = loadingHTML('주식운 풀이 생성 중');
+
+  const prompt = `당신은 명리학에 정통한 재무·투자 분야 풀이 전문가입니다. 아래 사람의 사주를 토대로 주식 투자 측면의 통찰을 풀이하세요.
+
+[기본]
+이름 ${r.name || '(미상)'} · ${r.gender} · ${r.y}.${String(r.m).padStart(2,'0')}.${String(r.d).padStart(2,'0')}${r.timeUnknown ? '' : ` ${String(r.h).padStart(2,'0')}:${String(r.mi||0).padStart(2,'0')}`}
+
+[사주]
+년주 ${yr.tgChar}${yr.zzChar} · 월주 ${mr.tgChar}${mr.zzChar} · 일주 ${dr.tgChar}${dr.zzChar} (일간 ${saju.ilgan}) · 시주 ${hr.missing ? '미상' : hr.tgChar+hr.zzChar}
+오행: 木${saju.oh.木} 火${saju.oh.火} 土${saju.oh.土} 金${saju.oh.金} 水${saju.oh.水} — 강함 ${strongest[0]}(${strongest[1]}) / 약함 ${weakest[0]}(${weakest[1]})
+한난조습: 寒${hnjs.score.寒} 暖${hnjs.score.暖} 燥${hnjs.score.燥} 濕${hnjs.score.濕} → ${hnjs.temp} · ${hnjs.humid}
+
+${sipsinBlock}
+
+[원국 관계] ${(oa.relations||[]).join(', ') || '특별한 합·충·형·해·파 없음'}
+[원국 신살] ${(oa.sinsals||[]).join(', ') || '특이 신살 없음'}
+${currentDaewoonStr}
+${currentSewoonStr}
+
+[주식운 풀이 원리 — 내부 추론용]
+- 정재 강 = 안정·고정·예금형 / 편재 강 = 변동·투기·기회형
+- 식상생재 = 재능이 부를 만듦 → 본인 능력으로 버는 결, 가장 이상적
+- 비겁 강 = 재물 다툼·손실 위험 → 큰 베팅 금물, 분산 필수
+- 신강(身強) + 재성 적당 → 재물을 다스림 / 신약 + 재성 강 → 재물에 끌려다님
+- 재성이 충(沖) 받으면 큰 손실 시기, 합(合) 받으면 안정·결실
+- 신살 — 도화살(인기·테마주에 끌림), 역마살(이동·해외주식·변동), 천을귀인(보호·운 받음), 양인(과감한 베팅·위험), 공망(허망·실속 없음), 문창(분석력)
+- 五行별 산업 — 木:교육/콘텐츠/섬유/바이오, 火:전자/IT/미디어/에너지, 土:부동산/건설/식품, 金:금융/철강/자동차, 水:물류/주류/유통/통신
+- 강한 五行 = 익숙·직관 작동 / 약한 五行 = 보완하면 균형
+- 대운·세운에 재성·식상이 들어오는 시기가 재물 기회 / 비겁·관성이 들어오면 경쟁·압박 시기
+
+[작성 지침]
+- 명리 전문 용어는 풀어쓸 것 (재성/식상/비겁/신강신약 같은 단어 자제, 풀어서 설명)
+- 단정 금지 — "~한 경향" "~기질" 어법, 命과 運 구분
+- 특정 종목·종목코드·매수가 추천 금지. "분야·섹터·태도" 수준의 안내만
+- 시기적 일반 흐름은 짚되 단기 예측 단정 금지
+- 1800~2800자, 끝까지 완결, 마지막에 면책 문구
+
+[항목 — 7개 모두 작성]
+
+━━━ 타 고 난 재 물 · 투 자 그 릇 ━━━
+이 사람 사주가 가리키는 재물에 대한 본질적 자세 (보수형·공격형·회피형·풍성형). 200~300자.
+
+━━━ 잘 맞 는 투 자 스 타 일 ━━━
+장기 vs 단기, 분산 vs 집중, 안정 vs 공격, 트렌드 vs 가치 — 어느 결이 본인에게 맞는가. 사주 근거 함께. 200~300자.
+
+━━━ 추 천 섹 터 · 분 야 ━━━
+강한 五行 + 보완 五行을 토대로 어떤 산업·섹터가 본인 운과 맞는지 (구체적 산업명). 다만 종목 추천이 아닌 분야 안내. 250~350자.
+
+━━━ 주 의 시 그 널 ━━━
+어떤 상황·심리·시기에 손실 위험이 큰지 (예: 비겁 강한 사람의 단타, 양인 발동 시 큰 베팅, 도화 영향에서 테마주 추종, 충 시기의 큰 배팅 등). 250~350자.
+
+━━━ 매 매 자 세 · 습 관 ━━━
+타고난 결을 살리는 매매 습관 — 정보 수집 방식, 결정 속도, 손절·익절 기준, 비중 관리. 200~300자.
+
+━━━ 현 재 시 기 흐 름 ━━━
+${currentDaewoonStr || currentSewoonStr ? '현재 대운·세운에서 재물 운이 어떻게 흐르는지' : '대운 정보 부족 — 일반 흐름 풀이'}. 적극·소극 어느 쪽이 좋은지, 어떤 신호를 살펴야 하는지. 200~300자.
+
+━━━ 종 합 조 언 ━━━
+한 단락 압축. 그 다음 줄에 면책 문구 그대로:
+"※ 본 풀이는 운명학적 참고용입니다. 실제 투자 결정과 그 결과는 본인 책임이며, 이 해석은 종목 추천이 아닙니다."
+
+[필수]
+- 모든 항목 끝까지 작성
+- 마지막 면책 문구 반드시 포함`;
+
+  try {
+    const text = await callAI(prompt, { maxTokens: 6000 });
+    r.stockInterp = text;
+    textEl.textContent = text;
+    btn.style.display = 'none';
+    if (r.savedAt) {
+      const list = getSaved();
+      const idx = list.findIndex(rr => rr.savedAt === r.savedAt);
+      if (idx >= 0) { list[idx].stockInterp = text; setSaved(list); renderSavedList(); }
+    }
+  } catch (e) {
+    textEl.textContent = '주식운 분석 오류: ' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function reAnalyzeStock() {
+  if (!currentReading) { alert('명식을 먼저 분석하세요'); return; }
+  currentReading.stockInterp = '';
+  if (currentReading.savedAt) {
+    const list = getSaved();
+    const idx = list.findIndex(rr => rr.savedAt === currentReading.savedAt);
+    if (idx >= 0) { list[idx].stockInterp = ''; setSaved(list); renderSavedList(); }
+  }
+  document.getElementById('stock-text').textContent = '';
+  document.getElementById('stock-go-btn').style.display = 'block';
+  analyzeStock();
 }
 
 function renderStudyTab() {
