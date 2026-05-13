@@ -1,0 +1,25 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 에디터 임시
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 임시·백업
+*.tmp
+*.bak
+*.log
+
+# 사용자 데이터 백업 파일 (혹시 모를 자동 백업)
+yeokhak_history_*.json
+yeokhak_export_*.json
+saved_data_*.json
+
+# Node (혹시 모를)
+node_modules/
+package-lock.json
