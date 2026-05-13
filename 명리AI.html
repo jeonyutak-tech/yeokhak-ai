@@ -3383,9 +3383,15 @@ function _withToneGuide(prompt) {
 function _looksTruncated(text) {
   if (!text || typeof text !== 'string') return false;
   const trimmed = text.trim();
-  if (trimmed.length < 1800) return false; // 짧은 응답은 정상일 수 있음
-  // 마지막 문자가 문장 종결이 아니면 잘림 의심
-  return !/[.。!?！？\]\)」』。」]\s*$/.test(trimmed.slice(-5));
+  if (trimmed.length < 600) return false; // 600자 미만 짧은 응답은 정상으로 간주
+  // 마지막 5자 안에 문장 종결 부호가 있으면 정상 완결
+  const tail = trimmed.slice(-5);
+  if (/[.。!?！？\]\)」』]\s*$/.test(tail)) return false;
+  // 한국어 종결 어미 확인 — 다·요·죠·네·임·됨·있음·없음 등으로 끝나면 정상
+  const last20 = trimmed.slice(-20);
+  if (/(다|요|죠|네|임|함|됨|없음|있음|입니다|합니다|됩니다|세요|보세요|주세요|마세요)[.。!?！？\s]*$/.test(last20)) return false;
+  // 그 외는 잘림 의심
+  return true;
 }
 
 async function _continueIfTruncated(initialText, originalMessages, options, providerId) {
@@ -5143,7 +5149,7 @@ ${arr.join('\n')}
   }
 
   try {
-    const text = await callAI(prompt, { maxTokens: 4000 }) || '결과 없음';
+    const text = await callAI(prompt, { maxTokens: 6000 }) || '결과 없음';
     if (!r.pastlifeSystems) r.pastlifeSystems = {};
     r.pastlifeSystems[sys] = { interp: text };
     // 저장 record에도
@@ -6124,7 +6130,7 @@ ${ctx.label}
 ⑥ 권장 시기 또는 권장 행동 (이 지역과 인연을 맺기 좋은 흐름)`;
 
   try {
-    const text = await callAI(prompt, { maxTokens: 4000 }) || '결과 없음';
+    const text = await callAI(prompt, { maxTokens: 6000 }) || '결과 없음';
     if (!r.regionCache) r.regionCache = {};
     r.regionCache[ctx.key] = text;
     textEl.textContent = text;
@@ -7657,14 +7663,15 @@ async function openCalDetail(y, m, d) {
 - 전체 600~900자 (충분히 풀어쓰되 늘어지지 않게)
 - ★ "장점"과 "단점"을 명확히 구분된 섹션으로 작성 (소제목 명시)
 - ★ 마지막 항목까지 반드시 완결할 것 (중간에 잘리지 말 것)
+- 한국어 종결 어미("~다·~요·~세요·~입니다" 등)로 자연스럽게 마무리
 
 [항목 — 순서대로, 모두 완성]
 1. 이 날의 큰 기운 / 분위기 (1~2줄, "${yearGanjiKR} ${m}월 ${d}일 — ..." 로 시작)
-2. ★ 장점 — 이 날 본인에게 유리한 작용·기회 (3~5줄, 구체적 행동·상황 예시 포함)
-3. ★ 단점 — 주의해야 할 부분, 피해야 할 행동·상황 (3~5줄)
-4. 추천 — 오늘 하면 좋은 행동과 피할 행동 한 줄씩`;
+2. ★ 장점 — 이 날 본인에게 유리한 작용·기회 (4~6줄, 구체적 행동·상황 예시 포함)
+3. ★ 단점 — 주의해야 할 부분, 피해야 할 행동·상황 (4~6줄)
+4. 추천 — 오늘 하면 좋은 행동과 피할 행동 (각 1~2줄씩)`;
   try {
-    const text = await callAI(prompt, { maxTokens: 3000 }) || '결과 없음';
+    const text = await callAI(prompt, { maxTokens: 6000 }) || '결과 없음';
     textEl.textContent = text;
     _dailyCache()[cacheKey] = text;
     _persistDaily();
@@ -8770,7 +8777,7 @@ async function loadSystemInterp(sys) {
   btn.textContent = '⋯ 분석 중...';
   interpEl.innerHTML = loadingHTML('AI 분석 중');
   try {
-    const text = await callAI(SYSTEM_PROMPTS[sys](currentReading), { maxTokens: 2000 }) || '결과 없음';
+    const text = await callAI(SYSTEM_PROMPTS[sys](currentReading), { maxTokens: 5000 }) || '결과 없음';
     interpEl.textContent = text;
     currentReading.systems[sys].interp = text;
     upsertReading({ ...currentReading });
@@ -8828,7 +8835,7 @@ async function analyzeSystem(sys) {
   block.innerHTML = '<div class="sys-interp-text" style="color: var(--text-muted);">' + loadingHTML('AI 분석 중') + '</div>';
   const analyzingId = currentReading.savedAt;
   try {
-    const text = await callAI(SYSTEM_PROMPTS[sys](currentReading), { maxTokens: 2800 }) || '결과 없음';
+    const text = await callAI(SYSTEM_PROMPTS[sys](currentReading), { maxTokens: 5000 }) || '결과 없음';
     // 저장 record에 반영 (다른 명식 보고 있어도 안전)
     const list = getSaved();
     const idx = list.findIndex(r => r.savedAt === analyzingId);
@@ -9507,7 +9514,7 @@ ${type === 'daewoon' ? `${data.age}~${data.age+9}세 (${data.year}년부터)` : 
 5. ★ 단점 — 주의·취약 지점·피해야 할 행동 (3~4줄)
 6. 추천 태도·한 마디 마무리 (1~2줄)`;
   try {
-    const text = await callAI(prompt, { maxTokens: 4000 }) || '결과 없음';
+    const text = await callAI(prompt, { maxTokens: 6000 }) || '결과 없음';
     textEl.textContent = text;
     currentReading.fortuneCache[cacheKey] = text;
     upsertReading({ ...currentReading });
