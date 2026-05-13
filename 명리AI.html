@@ -243,6 +243,34 @@
   .nav-btn-admin.active {
     background: linear-gradient(180deg, rgba(184,147,47,0.18), rgba(184,147,47,0.10));
   }
+  /* 관리자 서브 탭 */
+  .admin-sub-tabs {
+    display: flex; gap: 6px; margin-top: 12px;
+    border-bottom: 1px solid var(--gold-border);
+    padding-bottom: 0;
+  }
+  .admin-sub-btn {
+    padding: 8px 18px;
+    background: rgba(255,255,255,0.4);
+    border: 1px solid var(--gold-border);
+    border-bottom: none;
+    color: var(--text-muted);
+    border-radius: 6px 6px 0 0;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    transition: all .15s;
+    margin-bottom: -1px;
+  }
+  .admin-sub-btn:hover { background: var(--gold-dim); color: var(--gold); }
+  .admin-sub-btn.active {
+    background: rgba(255,255,255,0.95);
+    color: var(--gold);
+    border-color: var(--gold);
+    font-weight: 700;
+    border-bottom: 1px solid rgba(255,255,255,0.95);
+  }
   /* 폼 카드만 폭 제한 */
   #input-screen .form-card { max-width: 380px; margin: 0 auto; }
   /* 수정 모드 배너 */
@@ -2263,7 +2291,7 @@
     <button class="nav-btn" data-tab="region" onclick="switchTab('region')">지 역 운<br>해 석</button>
     <button class="nav-btn" data-tab="stock" onclick="switchTab('stock')">📈 주 식 운<br>해 석</button>
     <button class="nav-btn" data-tab="study" onclick="switchTab('study')">역 학<br>공 부</button>
-    <button class="nav-btn nav-btn-admin" data-tab="learn" onclick="switchTab('learn')">🔒 강 의<br>학 습</button>
+    <button class="nav-btn nav-btn-admin" data-tab="admin" onclick="switchTab('admin')">🔒 관 리 자<br>모 드</button>
   </aside>
   <div class="main-col">
   <!-- TAB: 역학 -->
@@ -2595,17 +2623,8 @@
     </div>
   </div>
 
-  <!-- TAB: 강의 학습 (관리자 전용) -->
+  <!-- TAB: 강의 학습 (관리자 모드 내부 — admin 탭에서만 접근) -->
   <div id="tab-learn" style="display:none;">
-    <div class="card" style="background: rgba(184,147,47,0.06); border-left: 3px solid var(--gold);">
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
-        <div>
-          <div style="font-family:'Noto Serif KR',serif; font-size:14px; color:var(--gold); letter-spacing:3px;">🔓 &nbsp; 관 리 자 &nbsp; 모 드</div>
-          <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">강의 학습은 관리자 전용 영역입니다. 학습된 노트는 모든 해석에 자동 반영됩니다.</div>
-        </div>
-        <button onclick="adminAuthLogout()" style="padding:7px 12px; background:rgba(184,60,50,0.08); border:1px solid rgba(184,60,50,0.3); color:var(--fire); border-radius:6px; cursor:pointer; font-family:'Noto Sans KR',sans-serif; font-size:11px; letter-spacing:1px; white-space:nowrap;">🚪 로그아웃</button>
-      </div>
-    </div>
     <div class="card">
       <div class="section-label">🤖 &nbsp; 자 동 &nbsp; 강 의 &nbsp; 학 습 <span class="section-hint">— 유튜브 인기 역학 강의 자동 검색·학습</span></div>
       <div style="font-size:11px; color:var(--text-muted); margin-bottom:10px; line-height:1.6;">
@@ -2766,6 +2785,38 @@
     </div>
   </div>
 
+  <!-- TAB: 관리자 모드 (통계 + 강의 학습 통합) -->
+  <div id="tab-admin" style="display:none;">
+    <div class="card" style="background: rgba(184,147,47,0.06); border-left: 3px solid var(--gold);">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div>
+          <div style="font-family:'Noto Serif KR',serif; font-size:14px; color:var(--gold); letter-spacing:3px;">🔓 &nbsp; 관 리 자 &nbsp; 모 드</div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+            관리자 전용 영역. 익명 통계 · 강의 학습 · 분야별 정리.
+          </div>
+        </div>
+        <button onclick="adminAuthLogout()" style="padding:7px 12px; background:rgba(184,60,50,0.08); border:1px solid rgba(184,60,50,0.3); color:var(--fire); border-radius:6px; cursor:pointer; font-family:'Noto Sans KR',sans-serif; font-size:11px; letter-spacing:1px; white-space:nowrap;">🚪 로그아웃</button>
+      </div>
+      <div class="admin-sub-tabs">
+        <button class="admin-sub-btn active" data-sub="stats" onclick="showAdminSubTab('stats')">📊 통계</button>
+        <button class="admin-sub-btn" data-sub="learn" onclick="showAdminSubTab('learn')">📚 강의 학습</button>
+      </div>
+    </div>
+    <div id="admin-pane-stats">
+      <div class="card" style="margin-top:0;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div style="font-size:11px; color:var(--text-muted); line-height:1.6;">
+            익명 통계만 수집 — 이름·생년월일·해석 내용 등 개인정보는 일체 저장하지 않습니다.
+          </div>
+          <button onclick="loadAdminStats()" style="padding:6px 10px; background:rgba(184,147,47,0.10); border:1px solid var(--gold-border); color:var(--gold); border-radius:5px; cursor:pointer; font-size:11px;">↻ 새로고침</button>
+        </div>
+        <div id="admin-stats-content" style="margin-top:14px;">
+          <div style="text-align:center; padding:40px 0; color:var(--text-muted);">통계 불러오는 중...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   </div><!-- /main-col -->
   <aside class="sidebar">
     <div class="card" id="auto-parse-card">
@@ -2903,6 +2954,14 @@ const AI_PROVIDERS = {
 };
 
 function getProviderId() {
+  // 마이그레이션 — 이전에 Pollinations로 자동 선택됐던 사용자를 한 번만 free_shared로 전환
+  if (!localStorage.getItem('ai_provider_migrated_v2')) {
+    const current = localStorage.getItem('ai_provider');
+    if (!current || current === 'pollinations') {
+      localStorage.setItem('ai_provider', 'free_shared');
+    }
+    localStorage.setItem('ai_provider_migrated_v2', '1');
+  }
   return localStorage.getItem('ai_provider') || 'free_shared';
 }
 
@@ -3286,6 +3345,26 @@ function _withToneGuide(prompt) {
 }
 
 // 통합 AI 호출 (모든 공급자 처리)
+// ══════════════════════════════════════════
+//  익명 통계 트래킹 (개인정보 일체 미수집)
+// ══════════════════════════════════════════
+const TRACK_URL = 'https://yeokhak-proxy.jeonyutak.workers.dev/track';
+function trackEvent(category, action) {
+  // 백그라운드로 전송, 실패해도 무시
+  try {
+    fetch(TRACK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category, action }),
+      keepalive: true
+    }).catch(() => {});
+  } catch (e) { /* ignore */ }
+}
+// 페이지 첫 로드 시 방문 기록
+window.addEventListener('load', () => {
+  setTimeout(() => trackEvent('visit', 'pageload'), 500);
+});
+
 async function callAI(promptOrMessages, options = {}) {
   const providerId = getProviderId();
   const provider = AI_PROVIDERS[providerId];
@@ -3325,6 +3404,8 @@ async function callAI(promptOrMessages, options = {}) {
   const tokenSec = isPolli ? 0.012 : 0.006;
   const estimatedSec = Math.max(15, Math.min(180, maxTokens * tokenSec));
   _startProgress(estimatedSec);
+  // 익명 트래킹 — 어떤 AI 공급자가 사용됐는지만 기록
+  trackEvent('ai', providerId);
   try {
     if (providerId === 'anthropic') {
       const body = { model, max_tokens: maxTokens, messages };
@@ -4479,9 +4560,17 @@ function tryEnterLearnTab() {
 
 // 왼쪽 탭 전환
 function switchTab(tab) {
-  // 강의 학습 탭은 관리자 인증 필요
-  if (tab === 'learn' && !tryEnterLearnTab()) return;
-  ['yeokhak', 'gunghap', 'tarot', 'unse', 'pastlife', 'region', 'stock', 'learn', 'study'].forEach(t => {
+  // 관리자 탭(admin)은 비밀번호 인증 필요
+  if (tab === 'admin' && !tryEnterLearnTab()) return;
+  // tab-learn을 admin 탭 안으로 이동 (한 번만) — admin 모드 통합용
+  const learnEl = document.getElementById('tab-learn');
+  const adminEl = document.getElementById('tab-admin');
+  if (learnEl && adminEl && learnEl.parentNode !== adminEl) {
+    adminEl.appendChild(learnEl);
+    learnEl.style.display = 'none'; // 처음엔 통계 서브 탭이 기본
+  }
+  // tab-learn은 더 이상 외부 탭으로 직접 표시·숨김 안 함 (admin 안에서 처리)
+  ['yeokhak', 'gunghap', 'tarot', 'unse', 'pastlife', 'region', 'stock', 'study', 'admin'].forEach(t => {
     const el = document.getElementById('tab-' + t);
     if (!el) return;
     el.style.display = t === tab ? '' : 'none';
@@ -4489,12 +4578,37 @@ function switchTab(tab) {
   document.querySelectorAll('.nav-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.tab === tab);
   });
+  // admin 탭 진입 시 기본 서브 탭은 통계
+  if (tab === 'admin') {
+    adminSubTab = 'stats';
+    showAdminSubTab('stats');
+  }
   if (tab === 'unse') renderCalendar();
   if (tab === 'pastlife') renderPastLifeTab();
   if (tab === 'region') renderRegionTab();
   if (tab === 'stock') renderStockTab();
-  if (tab === 'learn') renderLearnTab();
   if (tab === 'study') renderStudyTab();
+  // 익명 트래킹 — 탭 클릭만 (개인정보 일체 없음)
+  if (typeof trackEvent === 'function') trackEvent('tab', tab);
+}
+
+// 관리자 서브 탭 — 통계 ↔ 강의 학습 전환
+let adminSubTab = 'stats';
+function showAdminSubTab(sub) {
+  adminSubTab = sub;
+  // 서브 탭 버튼 active 표시
+  document.querySelectorAll('.admin-sub-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.sub === sub);
+  });
+  if (sub === 'stats') {
+    document.getElementById('admin-pane-stats').style.display = 'block';
+    document.getElementById('tab-learn').style.display = 'none';
+    renderAdminStats();
+  } else if (sub === 'learn') {
+    document.getElementById('admin-pane-stats').style.display = 'none';
+    document.getElementById('tab-learn').style.display = 'block';
+    renderLearnTab();
+  }
 }
 
 // ══════════════════════════════════════════
@@ -6813,6 +6927,151 @@ function reAnalyzeStock() {
 function renderStudyTab() {
   renderStudyOverview();
   renderStudyCategories();
+}
+
+// ══════════════════════════════════════════
+//  관리자 통계 페이지
+// ══════════════════════════════════════════
+const ADMIN_STATS_URL = 'https://yeokhak-proxy.jeonyutak-tech.workers.dev/admin/stats';
+// 위 URL은 실제 Worker URL로 교체됨 (코드 내 다른 곳과 동기)
+const _ADMIN_STATS_URL = 'https://yeokhak-proxy.jeonyutak.workers.dev/admin/stats';
+
+function renderAdminStats() {
+  // 자동으로 통계 로드
+  loadAdminStats();
+}
+
+async function loadAdminStats() {
+  const el = document.getElementById('admin-stats-content');
+  if (!el) return;
+  el.innerHTML = `<div style="text-align:center; padding:30px 0; color:var(--text-muted);">${loadingHTML('통계 불러오는 중')}</div>`;
+  try {
+    const resp = await fetch(_ADMIN_STATS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: ADMIN_PASSWORD, days: 30 })
+    });
+    if (!resp.ok) {
+      const data = await resp.json().catch(() => ({}));
+      el.innerHTML = `<div style="color:var(--fire); padding:20px; text-align:center;">통계 조회 실패: ${escapeHTML(data.message || resp.status)}</div>`;
+      return;
+    }
+    const { stats } = await resp.json();
+    renderAdminStatsContent(stats);
+  } catch (e) {
+    el.innerHTML = `<div style="color:var(--fire); padding:20px; text-align:center;">오류: ${escapeHTML(e.message)}</div>`;
+  }
+}
+
+function renderAdminStatsContent(s) {
+  const el = document.getElementById('admin-stats-content');
+  if (!el) return;
+  // 최근 30일 합산
+  const totalVisits = Object.values(s.total_visits || {}).reduce((a, b) => a + b, 0);
+  const totalUnique = Object.values(s.unique_visitors || {}).reduce((a, b) => a + b, 0);
+  const totalAI = Object.values(s.ai_providers || {}).reduce((a, b) => a + b, 0);
+  const totalFree = Object.values(s.usage || {}).reduce((a, b) => a + b, 0);
+
+  // 일별 막대 차트 (최근 14일)
+  const recent14 = (s.days || []).slice(0, 14).reverse();
+  const maxVisit = Math.max(...recent14.map(d => s.unique_visitors[d] || 0), 1);
+  const dailyChart = recent14.map(d => {
+    const u = s.unique_visitors[d] || 0;
+    const t = s.total_visits[d] || 0;
+    const h = (u / maxVisit) * 60;
+    return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; min-width:28px;">
+      <div style="font-size:9px; color:var(--text-muted); margin-bottom:2px;">${u}</div>
+      <div style="width:80%; height:${h}px; background:linear-gradient(180deg, var(--gold), var(--gold-dim)); border-radius:3px 3px 0 0; min-height:2px;"></div>
+      <div style="font-size:8px; color:var(--text-muted); margin-top:2px; transform:rotate(-45deg); transform-origin:center; white-space:nowrap;">${d.slice(5)}</div>
+    </div>`;
+  }).join('');
+
+  // 탭별 분포 (정렬)
+  const tabEntries = Object.entries(s.tabs || {}).sort((a, b) => b[1] - a[1]);
+  const maxTab = tabEntries.length ? tabEntries[0][1] : 1;
+  const tabLabels = {
+    yeokhak: '역학 다각', gunghap: '궁합', tarot: '타로', unse: '일운',
+    pastlife: '전생', region: '지역운', stock: '주식운', study: '역학공부',
+    learn: '강의학습', admin_stats: '관리자통계'
+  };
+  const tabChart = tabEntries.map(([name, count]) => {
+    const w = (count / maxTab) * 100;
+    const label = tabLabels[name] || name;
+    return `<div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <div style="width:90px; font-size:11px; color:var(--text-default); font-family:'Noto Sans KR',sans-serif;">${label}</div>
+      <div style="flex:1; height:18px; background:rgba(0,0,0,0.04); border-radius:3px; position:relative;">
+        <div style="height:100%; width:${w}%; background:var(--gold); border-radius:3px;"></div>
+        <div style="position:absolute; right:6px; top:0; line-height:18px; font-size:10px; color:var(--text-default); font-weight:700;">${count}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // AI 공급자별 분포
+  const aiEntries = Object.entries(s.ai_providers || {}).sort((a, b) => b[1] - a[1]);
+  const maxAI = aiEntries.length ? aiEntries[0][1] : 1;
+  const aiLabels = {
+    free_shared: '🎁 무료 공유', pollinations: '🌸 Pollinations', anthropic: 'Claude',
+    openai: 'GPT', gemini: 'Gemini', xai: 'Grok',
+    deepseek: 'DeepSeek', groq: 'Groq', mistral: 'Mistral', openrouter: 'OpenRouter'
+  };
+  const aiChart = aiEntries.map(([name, count]) => {
+    const w = (count / maxAI) * 100;
+    const label = aiLabels[name] || name;
+    return `<div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <div style="width:130px; font-size:11px; color:var(--text-default); font-family:'Noto Sans KR',sans-serif;">${label}</div>
+      <div style="flex:1; height:18px; background:rgba(0,0,0,0.04); border-radius:3px; position:relative;">
+        <div style="height:100%; width:${w}%; background:linear-gradient(90deg, #fbbf24, #d97706); border-radius:3px;"></div>
+        <div style="position:absolute; right:6px; top:0; line-height:18px; font-size:10px; color:var(--text-default); font-weight:700;">${count}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:18px;">
+      <div class="learn-stat-box">
+        <div class="learn-stat-label">최근 30일 고유 방문자</div>
+        <div class="learn-stat-val">${totalUnique}</div>
+      </div>
+      <div class="learn-stat-box">
+        <div class="learn-stat-label">총 방문 (페이지뷰)</div>
+        <div class="learn-stat-val">${totalVisits}</div>
+      </div>
+      <div class="learn-stat-box">
+        <div class="learn-stat-label">총 AI 호출</div>
+        <div class="learn-stat-val">${totalAI}</div>
+      </div>
+      <div class="learn-stat-box">
+        <div class="learn-stat-label">🎁 무료 공유 사용량</div>
+        <div class="learn-stat-val">${totalFree}</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:18px;">
+      <div class="section-label" style="font-size:13px;">▸ 최근 14일 일별 고유 방문자</div>
+      <div style="display:flex; align-items:flex-end; gap:4px; padding:14px 8px; background:rgba(255,255,255,0.4); border-radius:6px; min-height:90px;">
+        ${dailyChart || '<div style="margin:auto; color:var(--text-muted); font-size:12px;">아직 방문 데이터 없음</div>'}
+      </div>
+    </div>
+
+    <div style="margin-bottom:18px;">
+      <div class="section-label" style="font-size:13px;">▸ 탭별 클릭 분포 (최근 30일)</div>
+      <div style="padding:10px; background:rgba(255,255,255,0.4); border-radius:6px;">
+        ${tabChart || '<div style="text-align:center; color:var(--text-muted); padding:10px; font-size:12px;">아직 탭 클릭 데이터 없음</div>'}
+      </div>
+    </div>
+
+    <div style="margin-bottom:18px;">
+      <div class="section-label" style="font-size:13px;">▸ AI 공급자별 호출 분포</div>
+      <div style="padding:10px; background:rgba(255,255,255,0.4); border-radius:6px;">
+        ${aiChart || '<div style="text-align:center; color:var(--text-muted); padding:10px; font-size:12px;">아직 AI 호출 데이터 없음</div>'}
+      </div>
+    </div>
+
+    <div style="font-size:10px; color:var(--text-muted); padding:8px 10px; background:rgba(184,60,50,0.04); border-left:2px solid rgba(184,60,50,0.2); border-radius:3px; line-height:1.6;">
+      📌 수집 정책: 고유 방문자 식별을 위해 IP를 일별로 hash 없이 저장하지만 90일 후 자동 삭제됩니다.<br>
+      이름·생년월일·생시·해석 내용 등 어떤 개인 식별 정보도 저장하지 않습니다.
+    </div>
+  `;
 }
 
 function renderStudyOverview() {
