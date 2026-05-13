@@ -3360,29 +3360,134 @@ async function callAI(promptOrMessages, options = {}) {
     }
     // OpenAI 호환 (OpenAI, Grok, DeepSeek, Groq, Mistral, OpenRouter, Pollinations)
     if (!provider.apiUrl) throw new Error(`${provider.name}: API 엔드포인트 미설정`);
-    const finalMessages = system ? [{ role: 'system', content: system }, ...messages] : messages;
+    // system 메시지 처리 — Pollinations 같은 일부 무료 모델은 system role을 무시하므로 user에 합쳐줌
+    let finalMessages;
+    if (system) {
+      if (providerId === 'pollinations') {
+        // system을 첫 user 메시지 앞에 prepend
+        const firstUser = messages.find(m => m.role === 'user');
+        if (firstUser) {
+          finalMessages = messages.map(m =>
+            m === firstUser ? { ...m, content: `${system}\n\n${m.content}` } : m
+          );
+        } else {
+          finalMessages = [{ role: 'user', content: system }, ...messages];
+        }
+      } else {
+        finalMessages = [{ role: 'system', content: system }, ...messages];
+      }
+    } else {
+      finalMessages = messages;
+    }
     const headers = { 'Content-Type': 'application/json' };
     if (key) headers['Authorization'] = `Bearer ${key}`;
     if (providerId === 'openrouter') {
       headers['HTTP-Referer'] = 'https://yeokhak-studio.local';
       headers['X-Title'] = 'Yeokhak Studio Tak';
     }
-    const resp = await fetch(provider.apiUrl, {
-      method: 'POST', headers,
-      body: JSON.stringify({ model, max_tokens: maxTokens, messages: finalMessages }),
-      signal
-    });
-    if (!resp.ok) {
-      const txt = await resp.text().catch(()=>'');
-      let msg = txt.slice(0,200);
-      try { const j = JSON.parse(txt); if (j.error?.message) msg = j.error.message; } catch {}
-      throw new Error(`${provider.name} API ${resp.status}: ${msg}`);
+    // Pollinations 전용 — 모델 폴백 (현재 → openai → mistral 순)
+    const modelsToTry = providerId === 'pollinations'
+      ? [...new Set([model, 'openai', 'openai-fast', 'mistral'])]
+      : [model];
+
+    // OpenAI 호환 한 번 호출 (Pollinations continuation에서 재사용)
+    async function _callOnce(useModel, useMessages, useMaxTokens) {
+      const body = { model: useModel, max_tokens: useMaxTokens, messages: useMessages };
+      if (providerId === 'pollinations') {
+        body.max_completion_tokens = useMaxTokens;
+        body.stream = false;
+      }
+      const resp = await fetch(provider.apiUrl, {
+        method: 'POST', headers,
+        body: JSON.stringify(body),
+        signal
+      });
+      if (!resp.ok) {
+        const txt = await resp.text().catch(()=>'');
+        let msg = txt.slice(0,250);
+        try { const j = JSON.parse(txt); if (j.error?.message) msg = j.error.message; else if (j.message) msg = j.message; } catch {}
+        if (resp.status === 429) msg = '요청 한도 초과 — 잠시 후 다시 시도하거나 다른 AI로 전환하세요';
+        if (resp.status === 502 || resp.status === 503 || resp.status === 504) msg = '서버 일시 장애 — 잠시 후 재시도';
+        const err = new Error(`${provider.name} API ${resp.status} [${useModel}]: ${msg}`);
+        err.status = resp.status;
+        throw err;
+      }
+      const data = await resp.json();
+      const text =
+        data.choices?.[0]?.message?.content
+        || data.choices?.[0]?.delta?.content
+        || data.choices?.[0]?.text
+        || (typeof data.content === 'string' ? data.content : null)
+        || (Array.isArray(data.content) ? data.content.map(c => c.text || '').join('') : null)
+        || data.output
+        || data.response
+        || (typeof data === 'string' ? data : null);
+      const reason = data.choices?.[0]?.finish_reason || data.stop_reason || '';
+      return { text: typeof text === 'string' ? text : (text ? String(text) : ''), reason };
     }
-    const data = await resp.json();
-    const text = data.choices?.[0]?.message?.content;
-    const reason = data.choices?.[0]?.finish_reason;
-    if (!text) throw new Error(`${provider.name}: 빈 응답 (finish_reason: ${reason || '?'})`);
-    return cleanMarkdown(text);
+
+    let lastErr = null;
+    for (const tryModel of modelsToTry) {
+      try {
+        const first = await _callOnce(tryModel, finalMessages, maxTokens);
+        if (!first.text || !first.text.trim()) {
+          lastErr = new Error(`${provider.name}: 빈 응답 [${tryModel}] (finish_reason: ${first.reason || '?'})`);
+          if (providerId === 'pollinations') continue;
+          throw lastErr;
+        }
+
+        // Pollinations — 응답이 잘린 경우 자동 이어서 호출 (최대 3회)
+        if (providerId === 'pollinations') {
+          let accumulated = first.text;
+          let reason = first.reason;
+          let cont = 0;
+          while ((reason === 'length' || reason === 'MAX_TOKENS' || reason === 'max_tokens'
+                  // 마지막 글자가 문장 종결이 아니면 끊김 의심 (3000자 이상일 때만)
+                  || (accumulated.length > 3000 && !/[.。!?！？\]\)」』]\s*$/.test(accumulated.slice(-3))))
+                 && cont < 3) {
+            cont++;
+            const contMessages = [
+              ...finalMessages,
+              { role: 'assistant', content: accumulated },
+              { role: 'user', content: '위 풀이가 중간에 끊겼습니다. 같은 형식·소제목·항목 번호를 유지하면서, 끊긴 지점에서 바로 이어 끝까지 마무리해 주세요. 새 인사말·반복 금지. 작성 안 된 항목부터 시작.' }
+            ];
+            try {
+              const more = await _callOnce(tryModel, contMessages, maxTokens);
+              if (more.text && more.text.trim()) {
+                // 중복 제거 — 이어진 텍스트가 누적 텍스트 마지막과 겹치면 잘라냄
+                let addition = more.text.trim();
+                // 마지막 100자 정도 겹침 체크
+                const tail = accumulated.slice(-200).trim();
+                if (tail && addition.startsWith(tail.slice(-50))) {
+                  addition = addition.slice(50);
+                }
+                accumulated += '\n' + addition;
+                reason = more.reason;
+              } else {
+                break;
+              }
+            } catch (contErr) {
+              // 이어쓰기 실패해도 지금까지의 내용 반환
+              console.warn('continuation failed:', contErr);
+              break;
+            }
+          }
+          return cleanMarkdown(accumulated);
+        }
+
+        return cleanMarkdown(first.text);
+      } catch (e) {
+        if (e.name === 'AbortError') throw new Error('사용자가 분석을 중단했습니다');
+        lastErr = e;
+        if (providerId !== 'pollinations') throw e;
+        // Pollinations만 폴백 — 4xx/5xx 중 일부는 다음 모델로
+        if (e.status && [400, 404, 500].indexOf(e.status) < 0 && e.status !== undefined) {
+          // 폴백 안 할 에러 (429, 503 등) → 즉시 throw
+          throw e;
+        }
+      }
+    }
+    throw lastErr || new Error(`${provider.name}: 모든 모델 시도 실패`);
   } catch (e) {
     if (e.name === 'AbortError') throw new Error('사용자가 분석을 중단했습니다');
     throw e;
